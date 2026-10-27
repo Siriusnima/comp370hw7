@@ -1,5 +1,21 @@
+import json
+import argparse
 import requests_cache
 from bs4 import BeautifulSoup
+
+parser = argparse.ArgumentParser(
+    description = "Collecting trending articles from Montreal Gazette"
+)
+
+parser.add_argument(
+    "-o",
+    "--output",
+    default = "data/raw_data/trending.json",
+    help = "Path to the output JSON file"
+)
+
+args = parser.parse_args()
+
 
 url = "https://montrealgazette.com/"
 
@@ -45,18 +61,20 @@ if response.status_code == 200:
         )
         print("Number of links:", len(links))
 
+        articles = []
+
         for link in links:
-            print(link.get_text(strip = True))
+            #print(link.get_text(strip = True))
             article_url = link.get("href")
-            print("Article URL:", article_url)
+            #print("Article URL:", article_url)
 
             article_response = session.get(
                 article_url,
                 headers=headers,
                 timeout=15
             )
-            print("Article status:", article_response.status_code)
-            print("Article from cache:", article_response.from_cache)
+            #print("Article status:", article_response.status_code)
+            #print("Article from cache:", article_response.from_cache)
 
             if article_response.status_code == 200:
                 article_soup = BeautifulSoup(
@@ -69,7 +87,7 @@ if response.status_code == 200:
 
                 if headline_tag is not None:
                     title = headline_tag.get_text(strip=True)
-                    print("Article title:", title)
+                    #print("Article title:", title)
                 else:
                     print("Article title not found")
 
@@ -79,7 +97,7 @@ if response.status_code == 200:
                 )
                 if date_tag is not None:
                     publication_date = date_tag.get("datetime")
-                    print("Publication date:", publication_date)
+                    #print("Publication date:", publication_date)
                 else:
                     print("Publication date not found")
                 
@@ -90,7 +108,7 @@ if response.status_code == 200:
 
                 if author_tag is not None:
                     author_name = author_tag.get_text(strip = True)
-                    print("Author Name:", author_name)
+                    #print("Author Name:", author_name)
                     # print(author_tag.prettify())
                 else:
                     print("Author not found")
@@ -102,10 +120,29 @@ if response.status_code == 200:
 
                 if blurb_tag is not None:
                     blurb = blurb_tag.get_text(strip=True)
-                    print("Blurb:", blurb)
+                    #print("Blurb:", blurb)
                 else:
                     blurb = None
                     print("Blurb not found")
+
+                article_data = {
+                    "title": title,
+                    "publication date": publication_date,
+                    "author": author_name,
+                    "blurb": blurb
+                }
+                articles.append(article_data)
+
+        print("Total article collected:", len(articles))
+
+        #for article in articles:
+            #print(article)
+
+        with open(args.output, "w", encoding="utf-8") as f:
+            json.dump(articles, f, indent = 4, ensure_ascii = False)
+
+        print ("Results was saved to trending.json")
+
 
     else:
         print("Trending navigation not found.")
